@@ -15,11 +15,13 @@
 
 
 char *usage = "Usage: %s [options] filename.csv\n"
-			  "-m --mu=MU         set starting mu    (default %f)\n"
-			  "-s --sigma=SIGMA   set starting sigma (default %f)\n"
-			  "-b --beta=BETA     set starting beta  (default %f)\n"
-			  "-t --tau=TAU       set starting tau   (default %f)\n"
-			  "-h --help          this help\n";
+			  "\n"
+			  "Options:\n"
+			  "-m --mu    MU     set starting mu    (default %f)\n"
+			  "-s --sigma SIGMA  set starting sigma (default %f)\n"
+			  "-b --beta  BETA   set starting beta  (default %f)\n"
+			  "-t --tau   TAU    set starting tau   (default %f)\n"
+			  "-h --help         this help\n";
 
 char *progname = NULL;
 
@@ -65,7 +67,7 @@ void parse_opts(int argc, char **argv){
     int c;
     int index;
     while (1){
-    	  c = getopt_long (argc, argv, "b:m:s:h", long_options, &index);
+    	  c = getopt_long (argc, argv, "b:m:s:t:h", long_options, &index);
     	  if(c == -1) break;
     	  switch(c){
     	  	
@@ -91,6 +93,16 @@ void parse_opts(int argc, char **argv){
     	  	starting_sigma = atof(optarg);
     	  	if(starting_sigma == 0.0){
     	  		fprintf(stderr, "'%s' is not a valid value for sigma!\n", optarg);
+    	  		print_usage();
+    	  		exit(1);
+    	  	}
+    	  	break;
+
+
+    	  	case 't':
+    	  	tau = atof(optarg);
+    	  	if(tau == 0.0){
+    	  		fprintf(stderr, "'%s' is not a valid value for tau!\n", optarg);
     	  		print_usage();
     	  		exit(1);
     	  	}
@@ -142,7 +154,7 @@ int main(int argc, char **argv){
 		fprintf(stderr, "Couldn't open CSV file '%s'!\n", filename);
 		exit(1);
 	}
-	
+
 	while(getline(&line, &line_size, fp) != -1){
 		if(first) {
 			first = 0;
@@ -169,7 +181,7 @@ int main(int argc, char **argv){
 
 		skills[WIN_IDX]  = players[WIN_IDX]->skill;
 		skills[LOS_IDX]  = players[LOS_IDX]->skill; 
-
+	
 		ts_fg_run(trueskill, skills, 2, beta, tau);
 
 		players[WIN_IDX]->skill = skills[WIN_IDX];
