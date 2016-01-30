@@ -7,7 +7,9 @@
 
 #define WIN_IDX  0
 #define LOS_IDX  1
-
+#define MAX_PLAYERS 16
+#define MAX_MATCH_ID 256
+#define MAX_PLAYER_ID 256
 #define DEFAULT_MU    25.0
 #define DEFAULT_SIGMA (25.0 / 3.0)
 #define DEFAULT_BETA  (25.0 / 6.0)
@@ -17,10 +19,11 @@
 char *usage = "Usage: %s [options] filename.csv\n"
 			  "\n"
 			  "Options:\n"
-			  "-m --mu    MU     set starting mu    (default %f)\n"
-			  "-s --sigma SIGMA  set starting sigma (default %f)\n"
-			  "-b --beta  BETA   set starting beta  (default %f)\n"
-			  "-t --tau   TAU    set starting tau   (default %f)\n"
+			  "-m --mu     MU     set starting mu    (default %f)\n"
+			  "-s --sigma  SIGMA  set starting sigma (default %f)\n"
+			  "-b --beta   BETA   set starting beta  (default %f)\n"
+			  "-t --tau    TAU    set starting tau   (default %f)\n"
+			  "   --ignore        ignore first line  (default false)\n"
 			  "-h --help         this help\n";
 
 char *progname = NULL;
@@ -30,6 +33,7 @@ static double beta           = DEFAULT_BETA;
 static double tau            = DEFAULT_TAU;
 static double starting_mu    = DEFAULT_MU;
 static double starting_sigma = DEFAULT_SIGMA;
+static int    ignore_first   = 0;
 static char*  filename       = NULL;
 
 typedef struct player {
@@ -56,11 +60,12 @@ void print_usage(){
 void parse_opts(int argc, char **argv){
 	static struct option long_options[] =
         {
-          {"beta",    required_argument, 0, 'b'},
-          {"mu",      required_argument, 0, 'm'},
-          {"sigma",   required_argument, 0, 's'},
-          {"tau",     required_argument, 0, 't'},
-          {"help",    no_argument,       0, 'h'},
+          {"beta",   required_argument, 0, 'b'},
+          {"mu",     required_argument, 0, 'm'},
+          {"sigma",  required_argument, 0, 's'},
+          {"tau", 	 required_argument, 0, 't'},
+          {"ignore", no_argument,       &ignore_first, 1},
+          {"help",   no_argument,       0, 'h'},
           {0, 0, 0, 0}
         };
 
@@ -137,13 +142,13 @@ int main(int argc, char **argv){
 	char *line       = NULL;
 	size_t line_size = 0;
 	progname = argv[0];
-	player_t* winner;
-	player_t* loser;
-	char winner_key[64];
-	char loser_key[64];
-	player_t* players[2];
-	gauss_t   skills[2];
-	int match_id;
+
+	player_t* players[MAX_PLAYERS];
+	gauss_t   skills[MAX_PLAYERS];
+	char* match_id;
+	char* player_ids[MAX_PLAYERS];
+
+	
 
 	ts_fg_t* trueskill = ts_fg_new();
 	int first = 1;
@@ -158,34 +163,40 @@ int main(int argc, char **argv){
 	while(getline(&line, &line_size, fp) != -1){
 		if(first) {
 			first = 0;
-			printf("\"match_id\",\"winner_key\",\"winner_mu\",\"winner_sigma\",\"loser_key\",\"loser_mu\",\"loser_sigma\"\n");
-			continue;
+			if(ignore_first) continue;
 		}
 
-		// parse line
+		char *tok;
+		int first_tok = 1;
+		int player_n = 0;
+		for(tok = strtok(line, ",\n"); tok; tok = strtok(NULL, ",\n")){
+			if(first_tok){
+				match_id  = tok;
+				first_tok = 0;
+				continue;
+			}
+			if(strlen(tok)==0) continue;
+			player_ids[player_n] = tok;
+			players[player_n]    = find_or_create_player(tok);
+			player_n++;
+			if(player_n >= MAX_PLAYERS){
+				fprintf(stderr, "Too many players! Max is %d\n", MAX_PLAYERS);
+				exit(1);
+			}
+		}
 
-		sscanf(line, "\"%d\",\"%8s\",\"%8s\"", &match_id, winner_key, loser_key);
-		
-		// get players from hash map
-
-		players[WIN_IDX] = find_or_create_player(winner_key);
-		players[LOS_IDX] = find_or_create_player(loser_key);
-
-		// print out result before updating true skill
-
-		printf("\"%d\",\"%s\",%f,%f,\"%s\",%f,%f\n", match_id, 
-			winner_key, players[WIN_IDX]->skill.mean, players[WIN_IDX]->skill.stddev,
-			loser_key,  players[LOS_IDX]->skill.mean, players[LOS_IDX]->skill.stddev);
-
-		// update trueskill
-
-		skills[WIN_IDX]  = players[WIN_IDX]->skill;
-		skills[LOS_IDX]  = players[LOS_IDX]->skill; 
+		int i;
+		printf("%s", match_id);
+		for(i=0; i < player_n; i++){
+			printf(",%s,%f,%f", player_ids[i], players[i]->skill.mean, players[i]->skill.stddev);
+			skills[i] = players[i]->skill;
+		}
+		printf("\n");
 	
-		ts_fg_run(trueskill, skills, 2, beta, tau);
-
-		players[WIN_IDX]->skill = skills[WIN_IDX];
-		players[LOS_IDX]->skill = skills[LOS_IDX];
-
+		ts_fg_run(trueskill, skills, player_n, beta, tau);
+		
+		for(i=0; i < player_n; i++){
+			players[i]->skill = skills[i];
+		}
 	}
 }
