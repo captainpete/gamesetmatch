@@ -8,7 +8,7 @@ The magic in this brew is courtesy of [dirtyfilty aka Caleb Anderson](https://gi
 The commandline utility accepts an input CSV file of matches.<br>
 Output consists of match IDs with the player skill estimate (_μ_ and _σ_), _before_ each match.
 
-- Currently supports games of 2 players
+- Currently supports games of max 64 players
 - Currently has no support for teams
 - Currently has no support for ties
 - Player keys must be 8 characters long

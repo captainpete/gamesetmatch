@@ -7,9 +7,11 @@
 
 #define WIN_IDX  0
 #define LOS_IDX  1
-#define MAX_PLAYERS 16
+
+#define MAX_PLAYERS   64
 #define MAX_MATCH_ID 256
 #define MAX_PLAYER_ID 256
+
 #define DEFAULT_MU    25.0
 #define DEFAULT_SIGMA (25.0 / 3.0)
 #define DEFAULT_BETA  (25.0 / 6.0)
@@ -75,7 +77,7 @@ void parse_opts(int argc, char **argv){
     	  c = getopt_long (argc, argv, "b:m:s:t:h", long_options, &index);
     	  if(c == -1) break;
     	  switch(c){
-    	  	
+
     	  	case 'b':
     	  	beta = atof(optarg);
     	  	if(beta == 0.0){
@@ -138,7 +140,7 @@ void parse_opts(int argc, char **argv){
 
 
 int main(int argc, char **argv){
-	
+
 	char *line       = NULL;
 	size_t line_size = 0;
 	progname = argv[0];
@@ -148,7 +150,7 @@ int main(int argc, char **argv){
 	char* match_id;
 	char* player_ids[MAX_PLAYERS];
 
-	
+
 
 	ts_fg_t* trueskill = ts_fg_new();
 	int first = 1;
@@ -192,9 +194,9 @@ int main(int argc, char **argv){
 			skills[i] = players[i]->skill;
 		}
 		printf("\n");
-	
+
 		ts_fg_run(trueskill, skills, player_n, beta, tau);
-		
+
 		for(i=0; i < player_n; i++){
 			players[i]->skill = skills[i];
 		}
