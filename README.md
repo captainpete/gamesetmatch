@@ -10,6 +10,7 @@ Output consists of match IDs with the player skill estimate (_μ_ and _σ_), _be
 
 - Currently supports games of 2 players
 - Currently has no support for teams
+- Currently has no support for ties
 - Player keys must be 8 characters long
 - Probably needs a good test suite
 
